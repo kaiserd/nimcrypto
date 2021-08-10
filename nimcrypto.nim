@@ -8,7 +8,7 @@
 #
 
 import nimcrypto/[hash, sha2, ripemd, keccak, blake2, sha, hmac]
-import nimcrypto/[rijndael, blowfish, twofish, bcmode]
+import nimcrypto/[rijndael, blowfish, twofish, bcmode, chacha]
 import nimcrypto/[utils, sysrand]
 
 ## Nimcrypto is the Nim language's cryptographic library.
@@ -17,4 +17,4 @@ import nimcrypto/[utils, sysrand]
 ## https://github.com/cheatfate/nimcrypto/tree/master/examples
 
 export hash, sha, sha2, ripemd, keccak, blake2, hmac, rijndael, twofish,
-       blowfish, bcmode, utils, sysrand
+       blowfish, bcmode, utils, sysrand, chacha
