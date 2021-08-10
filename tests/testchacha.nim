@@ -164,3 +164,20 @@ suite "chacha  tests":
     check:
       serialized_output == expected_hex_output
 
+  test "encrypt example text":
+    let key   = fromHex("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f")
+    let nonce = fromHex("000000000000004a00000000") # note: the 4th byte of the nonce is "00" and not "09" opposed to previous tests
+    let counter = 1'u32
+    ## even if you don't mutate plaintext, it needs to be *var* if you want to access its addr (for memcopy)
+    var plaintext = "Ladies and Gentlemen of the class of '99: If I could offer you only one tip for the future, sunscreen would be it."
+    let expected_cipher_text_bytes = "6E2E359A2568F98041BA0728DD0D6981E97E7AEC1D4360C20A27AFCCFD9FAE0BF91B65C5524733AB8F593DABCD62B3571639D624E65152AB8F530C359F0861D807CA0DBF500D6A6156A38E088A22B65E52BC514D16CCF806818CE91AB77937365AF90BBF74A35BE6B40B8EEDF2785E42874D"
+    let expected_cipher_text = """n.5.%h..A..(..i..~z..C`..'........e.RG3..Y=..b.W.9.$.QR..S.5..a.....P.jaV....".^R.QM.........y76Z...t.[......x^B"""
+    var plain_text_bytes = newSeq[byte](len(plaintext))
+    var cipher_text_bytes = newSeq[byte](len(plaintext))
+    copyMem(addr plain_text_bytes[0], addr plaintext[0], len(plaintext))
+    chacha20_encrypt(key, counter, nonce, plain_text_bytes, cipher_text_bytes)
+    check:
+      toHex(cipherTextBytes) == expected_cipher_text_bytes
+    # var cipher_text = toString(cipher_text_bytes)
+    # echo cipher_text
+
