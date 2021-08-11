@@ -6,6 +6,8 @@
 ## - clear context (memory)
 
 # import math
+import system
+
 import utils
 
 type
@@ -127,13 +129,28 @@ proc chacha20_encrypt*(key: openArray[byte], counter: uint32, nonce: openArray[b
     for i in j*64..len(plainTextBytes)-1:
       cipherTextBytes[i] = key_stream[i mod 64] xor plainTextBytes[i]
 
+proc chacha20_decrypt*(key: openArray[byte], counter: uint32, nonce: openArray[byte], cipherTextBytes: openArray[byte], plainTextBytes: var openArray[byte]) =
+  chacha20_encrypt(key, counter, nonce, cipherTextBytes, plainTextBytes)
 
-# ## TODO: should we offer this as an interfact, too?
-# proc chacha20_encrypt_string*(key: openArray[byte], counter: uint32, nonce: openArray[byte], plaintext: string): string =
-#   var plainTextBytes = newSeq[byte](len(plaintext))
-#   var encText = newSeq[byte](len(plaintext))
-#   copyMem(addr plainTextBytes[0], addr plaintext[0], len(plaintext))
 
+## TODO: should we offer this as an interface, too?
+proc chacha20_encrypt_string*(key: openArray[byte], counter: uint32, nonce: openArray[byte], plaintext: var string): string =
+    var plain_text_bytes = newSeq[byte](len(plaintext))
+    var cipher_text_bytes = newSeq[byte](len(plaintext))
+    copyMem(addr plain_text_bytes[0], addr plaintext[0], len(plaintext))
+    chacha20_encrypt(key, counter, nonce, plain_text_bytes, cipher_text_bytes)
+    toString(cipher_text_bytes)
+
+## Just for testing
+## TODO: read as binary
+proc chacha20_encrypt_file*(key: openArray[byte], counter: uint32, nonce: openArray[byte], ifile_name: string, ofile_name: string) =
+    var plaintext = readFile(ifile_name)
+    let ciphertext = chacha20_encrypt_string(key, counter, nonce, plaintext)
+    writeFile(ofile_name, ciphertext)
+
+## Just for testing
+proc chacha20_decrypt_file*(key: openArray[byte], counter: uint32, nonce: openArray[byte], ifile_name: string, ofile_name: string) =
+  chacha20_encrypt_file(key, counter, nonce, ifile_name, ofile_name)
 
 
 

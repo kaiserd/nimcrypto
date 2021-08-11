@@ -1,9 +1,10 @@
 ## tests input from rfc8439
 ## further tests are marked with (non RFC)
 
+import system
 
 import nimcrypto/utils
-import ../nimcrypto/chacha # why do I need the .. here?
+import ../nimcrypto/chacha # you need to "nimble install" to add libs to the search path
 import unittest
 
 suite "chacha  tests":
@@ -178,6 +179,50 @@ suite "chacha  tests":
     chacha20_encrypt(key, counter, nonce, plain_text_bytes, cipher_text_bytes)
     check:
       toHex(cipherTextBytes) == expected_cipher_text_bytes
-    # var cipher_text = toString(cipher_text_bytes)
-    # echo cipher_text
+    var cipher_text = toString(cipher_text_bytes)
+
+    # check:
+      # thy use different encoding
+      # cipher_text == expected_cipher_text
+
+  test "encrypt & decrpyt (non RFC)":
+    let key   = fromHex("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f")
+    let nonce = fromHex("000000000000004a00000000") # note: the 4th byte of the nonce is "00" and not "09" opposed to previous tests
+    let counter = 1'u32
+    var plaintext = "Ladies and Gentlemen of the class of '99: If I could offer you only one tip for the future, sunscreen would be it."
+    var plain_text_bytes = newSeq[byte](len(plaintext))
+    var cipher_text_bytes = newSeq[byte](len(plaintext))
+    var decrypted_text_bytes = newSeq[byte](len(plaintext))
+    copyMem(addr plain_text_bytes[0], addr plaintext[0], len(plaintext))
+    chacha20_encrypt(key, counter, nonce, plain_text_bytes, cipher_text_bytes)
+    chacha20_decrypt(key, counter, nonce, cipher_text_bytes, decrypted_text_bytes)
+    check:
+      plain_text_bytes == decrypted_text_bytes
+  
+  test "encrypt & decrypt files (non RFC)":
+    let key   = fromHex("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f")
+    let nonce = fromHex("000000000000004a00000000") # note: the 4th byte of the nonce is "00" and not "09" opposed to previous tests
+    let counter = 1'u32
+    chacha20_encrypt_file(key, counter, nonce, "plaintext", "ciphertext")
+    chacha20_decrypt_file(key, counter, nonce, "ciphertext", "plaintext_dec")
+    check:
+      readFile("plaintext") == readFile("plaintext_dec")
+
+  # test "encrypt & decrypt file long (non RFC)":
+  #   let key   = fromHex("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f")
+  #   let nonce = fromHex("000000000000004a00000000") # note: the 4th byte of the nonce is "00" and not "09" opposed to previous tests
+  #   let counter = 1'u32
+  #   chacha20_encrypt_file(key, counter, nonce, "faust.txt", "faust.enc")
+  #   chacha20_decrypt_file(key, counter, nonce, "faust.enc", "faust.dec")
+  #   check:
+  #     readFile("faust.txt") == readFile("faust.dec")
+
+  # test "encrypt & decrypt jpg (non RFC)":
+  #   let key   = fromHex("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f")
+  #   let nonce = fromHex("000000000000004a00000000") # note: the 4th byte of the nonce is "00" and not "09" opposed to previous tests
+  #   let counter = 1'u32
+  #   chacha20_encrypt_file(key, counter, nonce, "test.jpg", "test.jpg.enc")
+  #   chacha20_decrypt_file(key, counter, nonce, "test.jpg.enc", "test-dec.jpg")
+  #   check:
+  #     readFile("test.jpg") == readFile("test-dec.jpg")
 

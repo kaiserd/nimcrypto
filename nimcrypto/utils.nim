@@ -415,3 +415,12 @@ template copyMem*[A, B](dst: var openarray[A], dsto: int,
       dst[dsto + i] = A(src[srco + i])
   else:
     copyMem(addr dst[dsto], unsafeAddr src[srco], length * sizeof(B))
+
+## TODO: is this good?
+## does it have to copy the result from the stackframe? red zone
+proc toString*(bytes: openarray[byte]): string =
+  # this does not work, null termination etc...
+  # result = cast[string](bytes)
+  result = newString(bytes.len) # this will allocate a proper string with proper length
+  copyMem(result[0].addr, bytes[0].unsafeAddr, bytes.len)
+
