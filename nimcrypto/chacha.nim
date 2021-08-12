@@ -1,45 +1,59 @@
-## Chacha20 
+#  nim chacha20
+#  author: kais3r
+
+## This module implements the Chacha20 algorithm by D.J. Bernstein
+## as specified in RFC8439
+## [https://datatracker.ietf.org/doc/html/rfc8439]
+
 ##
 ## TODO:
-## - dont copy state.. use something like slices
-## - implement an iterator for retrieving the next key stream block (usage as CPRNG)
-## - clear context (memory)
+## - Security
+##    - clear context (memory)
+## - Code/Design
+##    - reasonable public interface (currently, almost everything is public for testing)
+## - Optimization
+##    - zero copy where possible
+##    - inlining / remove unnecessary calls
+##    - inplace encryption? (as an alternative)
+##    - SIMD instructions
+## - Features (optional)
+##    - implement an iterator for retrieving the next key stream block (usage as CPRNG)
 
-# import math
 import system
 
 import utils
 
 type
   Chacha20* = object
-    original_state*: array[16, uint32] # make privat in the future... public for testing
+    originalState*: array[16, uint32]
     state*: array[16, uint32]
 
-## init state via uint32 state array
 proc init*(ctx: var Chacha20, state: array[16, uint32]) =
-  ctx.original_state = state
+  ## initialize the state directly via passing a uint32 state array
+  ctx.originalState = state
   ctx.state = state
 
-## init state via byte input
 proc init*(ctx:  var Chacha20, key: openArray[byte], nonce: openArray[byte], counter: uint32) =
-  ctx.original_state = [
+  ## initialize the state via separate byte arrays for the key and nonce
+  ctx.originalState = [
    0x61707865'u32,    0x3320646e,         0x79622d32,         0x6b206574,
    leLoad32(key, 0),  leLoad32(key, 4),   leLoad32(key, 8),   leLoad32(key, 12),
    leLoad32(key, 16), leLoad32(key, 20),  leLoad32(key, 24),  leLoad32(key, 28),
    counter,           leLoad32(nonce, 0), leLoad32(nonce, 4), leLoad32(nonce, 8),
   ]
-  ctx.state = ctx.original_state
+  ctx.state = ctx.originalState
 
-# ## init state via uint32 input
+# TODO: do we want this as an interface?
 # proc init*(ctx:  var Chacha20, key: array[8, uint32], nonce: array[3, uint32], counter: uint32) =
-#   ctx.original_state = [0x61707865'u32, 0x3320646e, 0x79622d32, 0x6b206574,
+#   ## init state via separate uint32 arrays for key and nonce
+#   ctx.originalState = [0x61707865'u32, 0x3320646e, 0x79622d32, 0x6b206574,
 #    key[0],         key[1],         key[2],     key[3],
 #    key[4],         key[5],         key[6],     key[7],
 #    counter,        nonce[0],       nonce[1],   nonce[2],
 #   ]
-#   ctx.state = ctx.original_state
+#   ctx.state = ctx.originalState
 
-proc quater_round_standallone*(a: var uint32, b: var uint32, c: var uint32, d: var uint32): tuple [a: uint32, b: uint32, c: uint32, d: uint32] =
+proc quaterRoundStandallone*(a: var uint32, b: var uint32, c: var uint32, d: var uint32): tuple [a: uint32, b: uint32, c: uint32, d: uint32] =
   a = a + b # wrapping add, overflow desired
   d = d xor a
   d = ROL(d, 16)
@@ -55,102 +69,108 @@ proc quater_round_standallone*(a: var uint32, b: var uint32, c: var uint32, d: v
   
   (a, b, c, d)
 
-proc quater_round*(ctx: var Chacha20, i: int, j: int, k: int, l: int) =
+proc quaterRound*(ctx: var Chacha20, i: int, j: int, k: int, l: int) =
+  ## public just for testing
   var a = ctx.state[i]
   var b = ctx.state[j]
   var c = ctx.state[k]
   var d = ctx.state[l]
-  
-  (a,b,c,d) = quater_round_standallone(a, b, c, d)
-  
+  (a,b,c,d) = quaterRoundStandallone(a, b, c, d)
   ctx.state[i] = a
   ctx.state[j] = b
   ctx.state[k] = c
   ctx.state[l] = d
 
-proc inner_block*(ctx: var Chacha20) =
-  ctx.quater_round(0, 4, 8, 12)
-  ctx.quater_round(1, 5, 9, 13)
-  ctx.quater_round(2, 6, 10, 14)
-  ctx.quater_round(3, 7, 11, 15)
-  ctx.quater_round(0, 5, 10, 15)
-  ctx.quater_round(1, 6, 11, 12)
-  ctx.quater_round(2, 7, 8, 13)
-  ctx.quater_round(3, 4, 9, 14)
+proc innerBlock*(ctx: var Chacha20) =
+  ## public just for testing
+  ctx.quaterRound(0, 4, 8, 12)
+  ctx.quaterRound(1, 5, 9, 13)
+  ctx.quaterRound(2, 6, 10, 14)
+  ctx.quaterRound(3, 7, 11, 15)
+  ctx.quaterRound(0, 5, 10, 15)
+  ctx.quaterRound(1, 6, 11, 12)
+  ctx.quaterRound(2, 7, 8, 13)
+  ctx.quaterRound(3, 4, 9, 14)
 
-proc chacha20_block*(ctx: var Chacha20) =
+proc chacha20BlockRounds*(ctx: var Chacha20) =
+  ## public just for testing
   for i in 1..10:
-    ctx.inner_block()
+    ctx.innerBlock()
 
-proc add_original_state*(ctx: var Chacha20) =
+proc addOriginalState*(ctx: var Chacha20) =
+  ## public just for testing
   for i in 0..15:
-    ctx.state[i] += ctx.original_state[i]
+    ctx.state[i] += ctx.originalState[i]
 
-proc reset_state_and_increment_counter*(ctx: var Chacha20) =
-  ctx.state = ctx.original_state # TODO: use memory map for this copy (maybe its done it is already implemented in an efficient way?)
-  inc ctx.original_state[12]
+proc chacha20Block*(ctx: var Chacha20) =
+    ctx.chacha20BlockRounds()
+    ctx.addOriginalState()
+
+proc resetState*(ctx: var Chacha20) =
+  ctx.state = ctx.originalState
+
+proc incrementCounter*(ctx: var Chacha20) =
+  inc ctx.originalState[12]
   inc ctx.state[12]
 
-proc export_state_bytes*(ctx: var Chacha20, dst: var openArray[byte]) =
+proc exportStateBytes*(ctx: var Chacha20, dst: var openArray[byte]) =
   for i in 0..15:
     leStore32(dst, i*4, ctx.state[i])
 
-## TODO: this will be the full round... maybe rename this to chacha20_block
-proc chacha20_block_round*(ctx: var Chacha20, key_stream: var openArray[byte]) =
-  ctx.chacha20_block()
-  ctx.add_original_state()
-  ctx.export_state_bytes(key_stream)
-  ctx.reset_state_and_increment_counter()
+proc chacha20BlockFull*(ctx: var Chacha20, keyStream: var openArray[byte]) =
+  ctx.chacha20Block()
+  ctx.exportStateBytes(keyStream)
+  ctx.resetState()
+  ctx.incrementCounter()
 
 
-## encrypt using chacha
-## This will become the actual interface...
-## TODO: think about the interface... this is just implementing basic funtionality and making the test vector work
-## TODO: should we offer inplace encryption?
-proc chacha20_encrypt*(key: openArray[byte], counter: uint32, nonce: openArray[byte], plainTextBytes: openArray[byte], cipherTextBytes: var openArray[byte]) =
+proc chacha20Encrypt*(key: openArray[byte], counter: uint32, nonce: openArray[byte], plainTextBytes: openArray[byte], cipherTextBytes: var openArray[byte]) =
+  ## encrypt a byte array (plainTextBytes) using Chacha20
+  ## using key, nonce
+  ## counter is used as initial counter value
+
   # check input
   if len(plainTextBytes) == 0: return
   #init ctx
   var ctx = Chacha20()
   ctx.init(key, nonce, counter)
-  let num_blocks = len(plainTextBytes) div 64
-  var key_stream = newSeq[byte](64)
-
-  # blocks of 64 bit size
-  for j in 0..num_blocks-1:
-    ctx.chacha20_block_round(key_stream) # this comprises increasing the counter
+  let numBlocks = len(plainTextBytes) div 64
+  var keyStream = newSeq[byte](64)
+  # encrypt blocks of 64 bit size
+  for j in 0..numBlocks-1:
+    ctx.chacha20BlockFull(keyStream) # this comprises increasing the counter
+    var k = 0 # TODO: integrate this into the for loop
     for i in (j*64)..(j*64)+63:
-      # TODO: don't mod here... make it more efficient
-      cipherTextBytes[i] = key_stream[i mod 64] xor plainTextBytes[i]
-  # remainder
+      cipherTextBytes[i] = keyStream[k] xor plainTextBytes[i]
+      k += 1
+  # encrypt remainder
   if((len plainTextBytes) mod 64 != 0):
-    ctx.chacha20_block_round(key_stream)
-    var j = num_blocks
+    ctx.chacha20BlockFull(keyStream)
+    var j = numBlocks
     for i in j*64..len(plainTextBytes)-1:
-      cipherTextBytes[i] = key_stream[i mod 64] xor plainTextBytes[i]
+      cipherTextBytes[i] = keyStream[i mod 64] xor plainTextBytes[i]
 
-proc chacha20_decrypt*(key: openArray[byte], counter: uint32, nonce: openArray[byte], cipherTextBytes: openArray[byte], plainTextBytes: var openArray[byte]) =
-  chacha20_encrypt(key, counter, nonce, cipherTextBytes, plainTextBytes)
+proc chacha20Decrypt*(key: openArray[byte], counter: uint32, nonce: openArray[byte], cipherTextBytes: openArray[byte], plainTextBytes: var openArray[byte]) =
+  chacha20Encrypt(key, counter, nonce, cipherTextBytes, plainTextBytes)
 
 
-## TODO: should we offer this as an interface, too?
-proc chacha20_encrypt_string*(key: openArray[byte], counter: uint32, nonce: openArray[byte], plaintext: var string): string =
-    var plain_text_bytes = newSeq[byte](len(plaintext))
-    var cipher_text_bytes = newSeq[byte](len(plaintext))
-    copyMem(addr plain_text_bytes[0], addr plaintext[0], len(plaintext))
-    chacha20_encrypt(key, counter, nonce, plain_text_bytes, cipher_text_bytes)
-    toString(cipher_text_bytes)
 
-## Just for testing
-## TODO: read as binary
-proc chacha20_encrypt_file*(key: openArray[byte], counter: uint32, nonce: openArray[byte], ifile_name: string, ofile_name: string) =
-    var plaintext = readFile(ifile_name)
-    let ciphertext = chacha20_encrypt_string(key, counter, nonce, plaintext)
-    writeFile(ofile_name, ciphertext)
+proc chacha20EncryptString*(key: openArray[byte], counter: uint32, nonce: openArray[byte], plaintext: var string): string =
+  ## TODO: should we offer this as an interface, too?
+  var plainTextBytes = newSeq[byte](len(plaintext))
+  var cipherTextBytes = newSeq[byte](len(plaintext))
+  copyMem(addr plainTextBytes[0], addr plaintext[0], len(plaintext))
+  chacha20Encrypt(key, counter, nonce, plainTextBytes, cipherTextBytes)
+  toString(cipherTextBytes)
 
-## Just for testing
-proc chacha20_decrypt_file*(key: openArray[byte], counter: uint32, nonce: openArray[byte], ifile_name: string, ofile_name: string) =
-  chacha20_encrypt_file(key, counter, nonce, ifile_name, ofile_name)
+proc chacha20EncryptFile*(key: openArray[byte], counter: uint32, nonce: openArray[byte], ifileName: string, ofileName: string) =
+  ## TODO: should we offer this API
+  var plaintext = readFile(ifileName)
+  let ciphertext = chacha20EncryptString(key, counter, nonce, plaintext)
+  writeFile(ofileName, ciphertext)
+
+proc chacha20DecryptFile*(key: openArray[byte], counter: uint32, nonce: openArray[byte], ifileName: string, ofileName: string) =
+  chacha20EncryptFile(key, counter, nonce, ifileName, ofileName)
 
 
 
