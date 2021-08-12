@@ -132,7 +132,7 @@ suite "Chacha20 Tests":
       ctx.originalState == stateInput
       ctx.state          == stateInput
 
-  test "Chacha20 setup state & generate keyStream block":
+  test "Chacha20 setup state & generate keyStreamBlock":
     var stateExpectedResult = [
       0xe4e7f110'u32,  0x15593bd1'u32,  0x1fdd0f50'u32,  0xc47120a3'u32,
       0xc7f4d1c7'u32,  0x0368c033'u32,  0x9aaa2204'u32,  0x4e6cd4c3'u32,
@@ -148,7 +148,7 @@ suite "Chacha20 Tests":
     check:
       ctx.state == stateExpectedResult
 
-  test "Chacha20 state export & serialized output":
+  test "Chacha20 extractKeyStreamBlock & serialized keyStreamBlock":
     var expectedHexOutput = "10F1E7E4D13B5915500FDD1FA32071C4C7D1F4C733C068030422AA9AC3D46C4ED2826446079FAA0914C2D705D98B02A2B5129CD1DE164EB9CBD083E8A2503C4E"
     let key   = fromHex("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f")
     let nonce = fromHex("000000090000004a00000000")
@@ -158,7 +158,7 @@ suite "Chacha20 Tests":
     ctx.chacha20Block()
 
     var byteOutput: array[64, byte]
-    ctx.exportStateBytes(byteOutput)
+    ctx.extractKeyStreamBlock(byteOutput)
     var serializedOutput = toHex(byteOutput)
     check:
       serializedOutput == expectedHexOutput

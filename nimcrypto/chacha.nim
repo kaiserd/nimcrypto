@@ -16,8 +16,10 @@
 ##    - inlining / remove unnecessary calls
 ##    - inplace encryption? (as an alternative)
 ##    - SIMD instructions
-## - Features (optional)
-##    - implement an iterator for retrieving the next key stream block (usage as CPRNG)
+
+## - Future Feature List
+##    - extend API to allow retrieving a keystream (e.g. for usage as a CPRNG)
+##      - implement with iterators for retrieving the next key stream block
 
 import system
 
@@ -54,6 +56,7 @@ proc init*(ctx:  var Chacha20, key: openArray[byte], nonce: openArray[byte], cou
 #   ctx.state = ctx.originalState
 
 proc quaterRoundStandallone*(a: var uint32, b: var uint32, c: var uint32, d: var uint32): tuple [a: uint32, b: uint32, c: uint32, d: uint32] =
+  ## public just for testing
   a = a + b # wrapping add, overflow desired
   d = d xor a
   d = ROL(d, 16)
@@ -103,60 +106,64 @@ proc addOriginalState*(ctx: var Chacha20) =
     ctx.state[i] += ctx.originalState[i]
 
 proc chacha20Block*(ctx: var Chacha20) =
-    ctx.chacha20BlockRounds()
-    ctx.addOriginalState()
+  ## public just for testing
+  ctx.chacha20BlockRounds()
+  ctx.addOriginalState()
 
 proc resetState*(ctx: var Chacha20) =
+  ## public just for testing
   ctx.state = ctx.originalState
 
 proc incrementCounter*(ctx: var Chacha20) =
+  ## public just for testing
   inc ctx.originalState[12]
   inc ctx.state[12]
 
-proc exportStateBytes*(ctx: var Chacha20, dst: var openArray[byte]) =
+proc extractKeyStreamBlock*(ctx: var Chacha20, dst: var openArray[byte]) =
+  ## public just for testing
   for i in 0..15:
     leStore32(dst, i*4, ctx.state[i])
 
-proc chacha20BlockFull*(ctx: var Chacha20, keyStream: var openArray[byte]) =
+proc chacha20BlockFull*(ctx: var Chacha20, keyStreamBlock: var openArray[byte]) =
+  ## public just for testing
   ctx.chacha20Block()
-  ctx.exportStateBytes(keyStream)
+  ctx.extractKeyStreamBlock(keyStreamBlock)
   ctx.resetState()
   ctx.incrementCounter()
 
 
 proc chacha20Encrypt*(key: openArray[byte], counter: uint32, nonce: openArray[byte], plainTextBytes: openArray[byte], cipherTextBytes: var openArray[byte]) =
   ## encrypt a byte array (plainTextBytes) using Chacha20
-  ## using key, nonce
+  ##
   ## counter is used as initial counter value
 
   # check input
   if len(plainTextBytes) == 0: return
-  #init ctx
+  # init ctx
   var ctx = Chacha20()
   ctx.init(key, nonce, counter)
   let numBlocks = len(plainTextBytes) div 64
-  var keyStream = newSeq[byte](64)
+  var keyStreamBlock = newSeq[byte](64)
   # encrypt blocks of 64 bit size
   for j in 0..numBlocks-1:
-    ctx.chacha20BlockFull(keyStream) # this comprises increasing the counter
+    ctx.chacha20BlockFull(keyStreamBlock) # this comprises increasing the counter
     var k = 0 # TODO: integrate this into the for loop
     for i in (j*64)..(j*64)+63:
-      cipherTextBytes[i] = keyStream[k] xor plainTextBytes[i]
+      cipherTextBytes[i] = keyStreamBlock[k] xor plainTextBytes[i]
       k += 1
   # encrypt remainder
   if((len plainTextBytes) mod 64 != 0):
-    ctx.chacha20BlockFull(keyStream)
+    ctx.chacha20BlockFull(keyStreamBlock)
     var j = numBlocks
     for i in j*64..len(plainTextBytes)-1:
-      cipherTextBytes[i] = keyStream[i mod 64] xor plainTextBytes[i]
+      cipherTextBytes[i] = keyStreamBlock[i mod 64] xor plainTextBytes[i]
 
 proc chacha20Decrypt*(key: openArray[byte], counter: uint32, nonce: openArray[byte], cipherTextBytes: openArray[byte], plainTextBytes: var openArray[byte]) =
   chacha20Encrypt(key, counter, nonce, cipherTextBytes, plainTextBytes)
 
 
-
 proc chacha20EncryptString*(key: openArray[byte], counter: uint32, nonce: openArray[byte], plaintext: var string): string =
-  ## TODO: should we offer this as an interface, too?
+  ## TODO: should we add a string based method to the API?
   var plainTextBytes = newSeq[byte](len(plaintext))
   var cipherTextBytes = newSeq[byte](len(plaintext))
   copyMem(addr plainTextBytes[0], addr plaintext[0], len(plaintext))
@@ -164,7 +171,7 @@ proc chacha20EncryptString*(key: openArray[byte], counter: uint32, nonce: openAr
   toString(cipherTextBytes)
 
 proc chacha20EncryptFile*(key: openArray[byte], counter: uint32, nonce: openArray[byte], ifileName: string, ofileName: string) =
-  ## TODO: should we offer this API
+  ## TODO: should we add a file based method to the API?
   var plaintext = readFile(ifileName)
   let ciphertext = chacha20EncryptString(key, counter, nonce, plaintext)
   writeFile(ofileName, ciphertext)
