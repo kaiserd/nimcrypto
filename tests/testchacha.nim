@@ -1,7 +1,7 @@
 ## tests input from rfc8439
 ## further tests are marked with (non RFC)
 
-import system
+import system, os
 
 import nimcrypto/utils
 import ../nimcrypto/chacha
@@ -201,10 +201,12 @@ suite "Chacha20 Tests":
     let key   = fromHex("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f")
     let nonce = fromHex("000000000000004a00000000") # note: the 4th byte of the nonce is "00" and not "09" opposed to previous tests
     let counter = 1'u32
-    chacha20EncryptFile(key, counter, nonce, "plaintext", "ciphertext")
-    chacha20DecryptFile(key, counter, nonce, "ciphertext", "plaintext_dec")
+    chacha20EncryptFile(key, counter, nonce, "chacha_plain.txt", "chacha_cipher.txt")
+    chacha20DecryptFile(key, counter, nonce, "chacha_cipher.txt", "chacha_plain-dec.txt")
     check:
-      readFile("plaintext") == readFile("plaintext_dec")
+      readFile("chacha_plain.txt") == readFile("chacha_plain-dec.txt")
+    removeFile("chacha_cipher.txt")
+    removeFile("chacha_plain-dec.txt")
 
   # test "Chacha20 encrypt & decrypt file long": # non RFC
   #   let key   = fromHex("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f")
