@@ -7,9 +7,9 @@ import nimcrypto/utils
 import ../nimcrypto/chacha
 import unittest
 
-suite "chacha tests":
+suite "Chacha20 Tests":
 
-  test "chacha basic operations":
+  test "Chacha20 basic operations":
       var a = 0x11111111'u32
       var b = 0x01020304'u32
       var c = 0x77777777'u32
@@ -23,7 +23,7 @@ suite "chacha tests":
       check:
         b == 0xcc5fed3c'u32
 
-  test "quater round standallone":
+  test "Chacha20 quater round standallone":
     var a = 0x11111111'u32
     var b = 0x01020304'u32
     var c = 0x9b8d6f43'u32
@@ -35,7 +35,7 @@ suite "chacha tests":
       c == 0x4581472e'u32
       d == 0x5881c4bb'u32
 
-  test "quater round":
+  test "Chacha20 quater round":
     var stateInput = [
       0x879531e0'u32,  0xc5ecf37d'u32,  0x516461b1'u32,  0xc9a62f8a'u32,
       0x44c20ef3'u32,  0x3390af7f'u32,  0xd9fc690b'u32,  0x2a5f714c'u32,
@@ -55,7 +55,7 @@ suite "chacha tests":
       ctx.state == stateExpectedResult
 
 
-  test "block 20 block rounds":
+  test "Chacha20 20 block rounds":
     var stateInput = [
       0x61707865'u32,  0x3320646e'u32,  0x79622d32'u32,  0x6b206574'u32,
       0x03020100'u32,  0x07060504'u32,  0x0b0a0908'u32,  0x0f0e0d0c'u32,
@@ -74,7 +74,7 @@ suite "chacha tests":
     check:
       ctx.state == stateExpectedResult
 
-  test "chacha20 block (20 rounds  & add original state)":
+  test "Chacha20 block (20 rounds & add original state)":
     var stateInput = [
       0x61707865'u32,  0x3320646e'u32,  0x79622d32'u32,  0x6b206574'u32,
       0x03020100'u32,  0x07060504'u32,  0x0b0a0908'u32,  0x0f0e0d0c'u32,
@@ -93,7 +93,7 @@ suite "chacha tests":
     check:
       ctx.state == stateExpectedResult
 
-  test "reset and increment counter (non RFC)":
+  test "Chacha20 reset and increment counter": # non RFC
     var stateInput = [
       0x61707865'u32,  0x3320646e'u32,  0x79622d32'u32,  0x6b206574'u32,
       0x03020100'u32,  0x07060504'u32,  0x0b0a0908'u32,  0x0f0e0d0c'u32,
@@ -116,7 +116,7 @@ suite "chacha tests":
       ctx.originalState == stateExpectedResult
       ctx.state         == stateExpectedResult
 
-  test "setup state":
+  test "Chacha20 setup state":
     var stateInput = [
       0x61707865'u32,  0x3320646e'u32,  0x79622d32'u32,  0x6b206574'u32,
       0x03020100'u32,  0x07060504'u32,  0x0b0a0908'u32,  0x0f0e0d0c'u32,
@@ -132,7 +132,7 @@ suite "chacha tests":
       ctx.originalState == stateInput
       ctx.state          == stateInput
 
-  test "setup state & block 20 rounds & add original state":
+  test "Chacha20 setup state & generate keyStream block":
     var stateExpectedResult = [
       0xe4e7f110'u32,  0x15593bd1'u32,  0x1fdd0f50'u32,  0xc47120a3'u32,
       0xc7f4d1c7'u32,  0x0368c033'u32,  0x9aaa2204'u32,  0x4e6cd4c3'u32,
@@ -148,7 +148,7 @@ suite "chacha tests":
     check:
       ctx.state == stateExpectedResult
 
-  test "state export, serialized output":
+  test "Chacha20 state export & serialized output":
     var expectedHexOutput = "10F1E7E4D13B5915500FDD1FA32071C4C7D1F4C733C068030422AA9AC3D46C4ED2826446079FAA0914C2D705D98B02A2B5129CD1DE164EB9CBD083E8A2503C4E"
     let key   = fromHex("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f")
     let nonce = fromHex("000000090000004a00000000")
@@ -163,7 +163,7 @@ suite "chacha tests":
     check:
       serializedOutput == expectedHexOutput
 
-  test "encrypt example text":
+  test "Chacha20 encrypt example text":
     let key   = fromHex("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f")
     let nonce = fromHex("000000000000004a00000000") # note: the 4th byte of the nonce is "00" and not "09" opposed to previous tests
     let counter = 1'u32
@@ -183,7 +183,7 @@ suite "chacha tests":
       # RFC uses ASCII encoding
       # cipherText == expectedCipherText
 
-  test "encrypt & decrpyt (non RFC)":
+  test "Chacha20 encrypt & decrpyt": # non RFC
     let key   = fromHex("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f")
     let nonce = fromHex("000000000000004a00000000") # note: the 4th byte of the nonce is "00" and not "09" opposed to previous tests
     let counter = 1'u32
@@ -197,7 +197,7 @@ suite "chacha tests":
     check:
       plainTextBytes == decryptedTextBytes
   
-  test "encrypt & decrypt files (non RFC)":
+  test "Chacha20 encrypt & decrypt file": # non RFC
     let key   = fromHex("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f")
     let nonce = fromHex("000000000000004a00000000") # note: the 4th byte of the nonce is "00" and not "09" opposed to previous tests
     let counter = 1'u32
@@ -206,21 +206,21 @@ suite "chacha tests":
     check:
       readFile("plaintext") == readFile("plaintext_dec")
 
-  test "encrypt & decrypt file long (non RFC)":
-    let key   = fromHex("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f")
-    let nonce = fromHex("000000000000004a00000000") # note: the 4th byte of the nonce is "00" and not "09" opposed to previous tests
-    let counter = 1'u32
-    chacha20EncryptFile(key, counter, nonce, "faust.txt", "faust.enc")
-    chacha20DecryptFile(key, counter, nonce, "faust.enc", "faust.dec")
-    check:
-      readFile("faust.txt") == readFile("faust.dec")
+  # test "Chacha20 encrypt & decrypt file long": # non RFC
+  #   let key   = fromHex("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f")
+  #   let nonce = fromHex("000000000000004a00000000") # note: the 4th byte of the nonce is "00" and not "09" opposed to previous tests
+  #   let counter = 1'u32
+  #   chacha20EncryptFile(key, counter, nonce, "faust.txt", "faust.enc")
+  #   chacha20DecryptFile(key, counter, nonce, "faust.enc", "faust.dec")
+  #   check:
+  #     readFile("faust.txt") == readFile("faust.dec")
 
-  test "encrypt & decrypt jpg (non RFC)":
-    let key   = fromHex("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f")
-    let nonce = fromHex("000000000000004a00000000") # note: the 4th byte of the nonce is "00" and not "09" opposed to previous tests
-    let counter = 1'u32
-    chacha20EncryptFile(key, counter, nonce, "test.jpg", "test.jpg.enc")
-    chacha20DecryptFile(key, counter, nonce, "test.jpg.enc", "test-dec.jpg")
-    check:
-      readFile("test.jpg") == readFile("test-dec.jpg")
+  # test "Chacha20 encrypt & decrypt jpg": # non RFC
+  #   let key   = fromHex("000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f")
+  #   let nonce = fromHex("000000000000004a00000000") # note: the 4th byte of the nonce is "00" and not "09" opposed to previous tests
+  #   let counter = 1'u32
+  #   chacha20EncryptFile(key, counter, nonce, "test.jpg", "test.jpg.enc")
+  #   chacha20DecryptFile(key, counter, nonce, "test.jpg.enc", "test-dec.jpg")
+  #   check:
+  #     readFile("test.jpg") == readFile("test-dec.jpg")
 
